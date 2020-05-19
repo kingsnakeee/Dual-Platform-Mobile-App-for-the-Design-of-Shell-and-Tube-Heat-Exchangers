@@ -1,0 +1,203 @@
+in 
+
+tube(cold) & shell(hot) side fluid
+massFlowRate kg/hr
+inTemp degc
+inPressure psi
+
+foulingResistance m^2*K/W
+surfaceOverDesign %
+maxCoolantVelocity m/s
+maxTubeLength m
+tubeMaterial k = W/m *K (lookup)
+tubeOuterDiameter mm
+tubeInnerDiameter mm
+pitchAngle 30, 60, 90 deg (Pt)
+pitchRatio Pt/dt
+baffleSpacing 
+baffleCut %
+deltaPressure psi
+
+cold : tube side
+hot : shell side
+
+d* : tube diameter
+h* : heat transfer coefficient
+*o : outer, shell side
+*i : inner, tube side
+
+heat duty of heat exchange, W
+Q(tubeMassFlowRate, tubeFluidSpecificHeatCapacity, tubeInTemp, tubeOutTemp) = tubeMassFlowRate x tubeFluidSpecificHeatCapacity x (tubeInTemp - tubeOutTemp)
+                                ^ fluid depended
+                                  4179 for water
+
+Pt : pitch size, distance between tube center
+
+tube pitch ratio
+PR() =  Pt/do
+
+ΔTlmcf() log mean temperature differences (LMTD)
+ΔTlmcf() = ΔT1() - ΔT2() / ln(ΔT1() / ΔT2())
+ΔTlmcf() = (shellInTemp - tubeOutTemp) - (shellOutTemp - tubeInTemp) / ln((shellInTemp - tubeOutTemp) / (shellOutTemp - tubeInTemp))
+
+ΔTm() effective or true mean temperature difference, °C, K
+ΔTm() = F * ΔTlmcf()
+
+shell hot outlet temperature
+Tsout(inT,) = shellInTemp - Q() / shellMassFlowRate x shellFluidSpecificHeatCapacity
+
+outside heat transfer surface area based on the outside diameter of the tube
+Ao() = pi * do * L * Nt()
+Ao() = Q() / (Uo() * ΔTm())
+Ao() = Q() / (Uo() * F * ΔTlmcf())
+
+Ai() = pi * di * L * Nt()
+
+η,ηi,ηo fin efficientcy
+η = ηi = ηo = 1
+
+
+Rw() Resistance of tube along tube wall
+Rw() = ln(do/di) / (2 * pi * L * k)
+
+Uo() the overall heat transfer coefficient based on the outside diameter of tubes
+Uo() =  (Ao() / Ai()) * (1/(ηi * hi())) + (Ao() * Rfi) / (ηi * Ai()) + Ao() * Rw() + Rfo / ηo + 1 / ηo * ho() (^-1)
+
+simplify to Uf and Uc
+
+Uf() overall heat transfer coefficient for fouled surface based on the outside tube area, W/m2 · K
+Uf() = ( 1 / ho ) + (do / di) * (1 / hi) + (do/2) * (ln(do/di) / k)  + Rft (^-1) 
+
+Uc() overall heat transfer coefficient for clean surface based on the outside tube area, W/m2 · K
+Uc() = ( 1 / ho ) + (do / di) * (1 / hi) + (do/2) * (ln(do/di) / k) (^-1)
+k conductivity for the selected tube material
+
+
+
+Af() heat transfer area with fouling, m2
+Af() = Q() / (Uf() * ΔTm())
+
+Ac() heat transfer area without fouling, m2
+Ac() = Q() / (Uc() * ΔTm())
+
+overallSurfaceOverDesign() = Af() / Ac()
+check against user provided
+
+CTP = tube count calculation constant
+0.93 one pass
+0.90 two passes
+0.85 three passes
+
+CL = tube layout constant
+1.00 for 90 and 45°
+0.87 for 30 and 60°
+
+Ds() shellDiameter
+Ds() = 0.637 * sqrt(CL/CTP) * pow((Ao() * PR()^2 * do ) / L, 0.5)
+
+L = Tube length, less than user defined maximum
+
+Nt() totalNumberOfTube
+Nt() = 0.785 * (CTP/CL) * (Ds()^2 / (PR()^2 * do^2))
+
+
+===== Rating
+
+Look up for valid Ds and Nt from Table 9.3
+
+Tb() average temp between inlet outlet
+Tb() = (Tx1 + Tx2) / 2
+
+De() equivalentDiameter
+De() = 4 * freeFlowArea / wettedPerimeter
+De() = 4 * (Pt^2 - pi * do^2 / 4) / (pi * do) // 45&90 pitchAngle
+De() = 4 * (Pt^2 * sqrt(3) / 4 - pi * do^2 / 8) / (pi * do / 2) // 30&60 pitchAngle
+
+B : baffle spacing
+
+C() distance between tube outer radius
+
+As() bundleCrossflowArea
+As() = Ds() * C() * B() / Pt
+
+Gs() shell-side mass velocity
+Gs() = shellMassFlowRate / As()
+
+Gt() tube-side mass velocity
+Gt() = tubeMassFlowRate / As()
+
+ρ Table Tb lookup , density
+µ Table Tb lookup , dynamicViscosity
+cp Table Tb lookup , specificHeat
+k Table Tb lookup , thermalConductivity
+Pr Table Tb lookup ,  prandtlNumber
+Np : numberOfTubePass
+
+Res() 
+Res() = Gs() * De() * µ
+400 < Res() < 1e6
+
+f() friction factor
+f() = exp(0.576 - 0.19 * ln(Res()))
+
+Nb() = L / B - 1
+
+Δpt() pressure drop on tube side
+Δpt() = 4 * f * (L * Np / di) * ρ (um^2 / 2)
+Δpt() = 4 * f * (L * Np / di) * (Gt^2 / 2 * ρ)
+
+Δps() = f() * Gs()^2 * (Nb() + 1) * Ds() / (2 * ρ * De * φs())
+
+φs() = (µb / µw)^0.14
+
+Δpr() additional pressure drop
+Δpr() = 4 * Np * (ρ * um^2 / 2) 
+
+Δptotal() = (4 * f * (L * Np / di) + 4 * Np) * ρ * um^2 / 2
+
+Tw()
+
+µb dynamic viscosity of the shell-side fluid at 60degrees
+µb : µ
+
+µw dynamic viscosity of the fluid along the way
+µw : 6.04e-4
+
+ho() shell-side heat transfer coefficient
+ho() * De() / k = 0.36 * (De() * Gs() / µ)^0.55 * (cp * µ / k)^1.3 * φs()
+ho() = 0.36 * (De() * Gs() / µ)^0.55 * (cp * µ / k)^1.3 * φs() * k / De()
+
+Atp() tube-side heat transfer coefficient
+Atp() = (pi * di^2 / 4) * (Nt() / 2)
+
+um()
+um() = tubeMassFlowRate / (ρtube * Atp())
+
+Re() = ρtube * um() * di / µ
+Re() > 10e4
+
+Nub() Gnielinski’s correlation
+Nub() = ((f() / 2) * (Re() - 1000) * Pr) / (1 + 1.27 * (f/2)^1/2 * (Pr^2/3 - 1))
+
+
+hi() tube-side heat transfer coefficient
+hi() = Nub() * k / di
+
+
+
+
+Tube-side heat transfer coefficient
+results.hTube Δptotal()
+tubeHeatTransferCoeff
+
+Tube-side pressure drop
+results.pressureTube
+tubePressureDrop
+
+Shell-side heat transfer coefficient
+results.hShell
+shellHeatTransferCoeff
+
+Shell-side pressure drop 
+results.pressureShell
+shellPressureDrop
